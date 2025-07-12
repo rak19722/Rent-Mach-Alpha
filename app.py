@@ -18,6 +18,7 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 db = SQLAlchemy(app)
 
+
 # --------------------- Modelos de Base de Datos ---------------------
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
