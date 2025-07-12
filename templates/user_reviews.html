@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Reputación de {{ user.username }} - RentMatch{% endblock %}
+
+{% block content %}
+<section class="user-reputation-header">
+    <h1>Reputación de {{ user.username }}</h1>
+    <p class="user-role">{{ 'Arrendador' if user.role == 'landlord' else 'Arrendatario' }}</p>
+    
+    <div class="rating-summary">
+        <div class="overall-rating">
+            <div class="stars" style="--rating: {{ avg_rating }};"></div>
+            <span class="rating-value">{{ avg_rating }}</span>
+            <span class="rating-count">({{ reviews|length }} opiniones)</span>
+        </div>
+    </div>
+</section>
+
+<section class="reviews-list">
+    <h2>Opiniones</h2>
+    
+    {% if reviews %}
+    <div class="reviews">
+        {% for review in reviews %}
+        <div class="review-card">
+            <div class="review-header">
+                <div class="reviewer-info">
+                    <h4>{{ review.reviewer.username }}</h4>
+                    <div class="stars" style="--rating: {{ review.rating }};"></div>
+                </div>
+                <span class="review-date">{{ review.created_at.strftime('%d/%m/%Y') }}</span>
+            </div>
+            <div class="review-content">
+                <p>{{ review.comment }}</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p>Este usuario aún no tiene opiniones.</p>
+    {% endif %}
+</section>
+
+{% if 'user_id' in session and session['user_id'] != user.id %}
+<section class="add-review">
+    <h2>Dejar una opinión</h2>
+    <form id="review-form" action="{{ url_for('submit_review') }}" method="POST">
+        <input type="hidden" name="reviewed_id" value="{{ user.id }}">
+        <input type="hidden" name="role_reviewed" value="{{ user.role }}">
+        
+        <div class="form-group">
+            <label for="rating">Calificación:</label>
+            <div class="rating-input">
+                <input type="radio" id="star5" name="rating" value="5" required><label for="star5"></label>
+                <input type="radio" id="star4" name="rating" value="4"><label for="star4"></label>
+                <input type="radio" id="star3" name="rating" value="3"><label for="star3"></label>
+                <input type="radio" id="star2" name="rating" value="2"><label for="star2"></label>
+                <input type="radio" id="star1" name="rating" value="1"><label for="star1"></label>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="comment">Comentario:</label>
+            <textarea name="comment" id="comment" rows="4" required></textarea>
+        </div>
+        
+        <button type="submit" class="btn">Enviar opinión</button>
+    </form>
+</section>
+
+<script>
+document.getElementById('review-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    try {
+        const response = await fetch(this.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert(result.message || '¡Tu opinión ha sido enviada con éxito!');
+            window.location.reload();
+        } else {
+            alert(result.error || 'Hubo un error al enviar tu opinión');
+        }
+    } catch (error) {
+        alert('Error de conexión. Por favor intenta nuevamente.');
+    }
+});
+</script>
+{% endif %}
+{% endblock %}

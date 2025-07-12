@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+
+{% block title %}{{ property.title }} - RentMatch{% endblock %}
+
+{% block extra_css %}
+<style>
+    .property-gallery {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    .property-gallery img {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+        border-radius: 8px;
+    }
+    .landlord-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin: 1.5rem 0;
+        padding: 1rem;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+    }
+    .landlord-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background-color: #ddd;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+    .landlord-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .landlord-details {
+        flex: 1;
+    }
+    .landlord-name {
+        font-weight: 600;
+        margin-bottom: 0.3rem;
+    }
+    .landlord-rating {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .stars {
+        --percent: calc(var(--rating) / 5 * 100%);
+        display: inline-block;
+        font-size: 1rem;
+        line-height: 1;
+    }
+    .stars::before {
+        content: '★★★★★';
+        letter-spacing: 2px;
+        background: linear-gradient(90deg, #ffc107 var(--percent), #ddd var(--percent));
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .view-profile-btn {
+        white-space: nowrap;
+    }
+    .btn-interest {
+        padding: 10px 20px;
+        font-size: 1.1rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .request-status {
+        border-left: 4px solid #0d6efd;
+        padding-left: 15px;
+        margin-top: 20px;
+    }
+    .badge {
+        font-size: 0.9em;
+        padding: 5px 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="container">
+    <h1>{{ property.title }}</h1>
+
+    <div class="property-detail">
+        {% if property.images and property.images|length > 0 %}
+        <div class="property-gallery">
+            {% for img in property.images %}
+                <img src="{{ url_for('static', filename='uploads/' + img.filename) }}" alt="Imagen de {{ property.title }}">
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="property-image-large" style="background-image: url('https://via.placeholder.com/800x400'); height: 300px; background-size: cover; background-position: center; border-radius: 8px;"></div>
+        {% endif %}
+        
+        <!-- Sección del Arrendador -->
+        <div class="landlord-info">
+            <div class="landlord-avatar">
+                <i class="fas fa-user" style="font-size: 1.5rem; color: #666;"></i>
+            </div>
+            <div class="landlord-details">
+                <div class="landlord-name">Arrendador: {{ landlord.username }}</div>
+                <div class="landlord-rating">
+                    <div class="stars" style="--rating: {{ landlord.rating or 0 }};"></div>
+                    <span>({{ "%.1f"|format(landlord.rating or 0) }})</span>
+                </div>
+            </div>
+            <a href="{{ url_for('user_reviews', user_id=landlord.id) }}" class="btn view-profile-btn">
+                Ver reputación
+            </a>
+        </div>
+        
+        <p class="location"><i class="fas fa-map-marker-alt"></i> {{ property.location }}</p>
+        
+        <div class="property-info">
+            <p><strong>Precio:</strong> ${{ "{:,.0f}".format(property.price) }} MXN/mes</p>
+            <p><strong>Tipo:</strong> 
+                {% if property.type == 'apartment' %}Departamento
+                {% elif property.type == 'house' %}Casa
+                {% elif property.type == 'room' %}Cuarto
+                {% else %}Otro{% endif %}
+            </p>
+            <p><strong>Habitaciones:</strong> {{ property.bedrooms }}</p>
+            <p><strong>Baños:</strong> {{ property.bathrooms }}</p>
+            <p><strong>Área:</strong> {{ property.area }} m²</p>
+            <p><strong>Acepta mascotas:</strong> {{ 'Sí' if property.pet_friendly else 'No' }}</p>
+        </div>
+
+        <div class="description">
+            <h3>Descripción</h3>
+            <p>{{ property.description }}</p>
+        </div>
+
+        {% if session.get('user_id') %}
+        <div class="property-actions">
+            <button class="btn favorite-btn" data-property-id="{{ property.id }}">
+                <i class="far fa-heart"></i> Guardar como favorito
+            </button>
+        </div>
+        {% endif %}
+
+        <!-- Sección de Interés Modificada (CORREGIDA) -->
+        {% if session.get('user_id') and session.get('role') == 'tenant' %}
+        <div class="mt-4">
+            {% if not existing_request %}
+                <form method="POST" action="{{ url_for('request_interest', property_id=property.id) }}">
+                    <button type="submit" class="btn btn-primary btn-interest">
+                        <i class="fas fa-handshake"></i> Me interesa esta propiedad
+                    </button>
+                </form>
+            {% else %}
+                <div class="request-status">
+                    <h5><i class="fas fa-clock"></i> Estado de tu solicitud</h5>
+                    <p><strong>Estado:</strong> 
+                        <span class="badge 
+                            {% if existing_request.status == 'pending' %}bg-secondary
+                            {% elif existing_request.status == 'accepted' %}bg-success
+                            {% else %}bg-danger{% endif %}">
+                            {{ existing_request.status|capitalize }}
+                        </span>
+                    </p>
+                    
+                    {% if existing_request.status == 'accepted' %}
+                    <p><strong>Etapa actual:</strong> 
+                        {% if existing_request.stage == 0 %}
+                            Revisión inicial
+                        {% elif existing_request.stage == 1 %}
+                            Revisión de reputación
+                        {% elif existing_request.stage == 2 %}
+                            Documentación requerida
+                        {% elif existing_request.stage == 3 %}
+                            Contacto y decisión final
+                        {% endif %}
+                    </p>
+                    
+                    <a href="{{ url_for('process_request', request_id=existing_request.id) }}" class="btn btn-info mt-2">
+                        <i class="fas fa-tasks"></i> Continuar proceso
+                    </a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<script>
+// Manejar favoritos
+document.querySelector('.favorite-btn')?.addEventListener('click', function(e) {
+    e.preventDefault();
+    const propertyId = this.dataset.propertyId;
+    
+    if (!this.classList.contains('logged-in')) {
+        window.location.href = "/login";
+        return;
+    }
+    
+    this.classList.toggle('favorited');
+    const icon = this.querySelector('i');
+    if (this.classList.contains('favorited')) {
+        icon.classList.remove('far');
+        icon.classList.add('fas');
+        this.innerHTML = '<i class="fas fa-heart"></i> Favorito guardado';
+    } else {
+        icon.classList.remove('fas');
+        icon.classList.add('far');
+        this.innerHTML = '<i class="far fa-heart"></i> Guardar como favorito';
+    }
+    
+    fetch('/api/add_favorite', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ property_id: propertyId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.success) {
+            alert(data.error || 'Error al guardar favorito');
+            this.classList.toggle('favorited');
+            const icon = this.querySelector('i');
+            if (this.classList.contains('favorited')) {
+                icon.classList.remove('far');
+                icon.classList.add('fas');
+            } else {
+                icon.classList.remove('fas');
+                icon.classList.add('far');
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}Propiedades en renta - RentMatch{% endblock %}
+
+{% block extra_css %}
+<style>
+    .property-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.5rem;
+    }
+    .filters { background: #f5f5f5; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; }
+    .filter-group { margin-bottom: 1rem; }
+    .filter-group h3 { margin-bottom: 0.5rem; font-size: 1rem; }
+    .property-image {
+        height: 200px;
+        background-size: cover;
+        background-position: center;
+        border-radius: 8px;
+    }
+    .pagination {
+        display: flex;
+        justify-content: center;
+        gap: 0.5rem;
+        margin-top: 2rem;
+        flex-wrap: wrap;
+    }
+    .pagination .current-page {
+        padding: 0.5rem 1rem;
+        background-color: #007bff;
+        color: white;
+        border-radius: 4px;
+    }
+    .pagination .ellipsis {
+        padding: 0.5rem;
+        align-self: flex-end;
+    }
+    .results-info {
+        margin: 1rem 0;
+        font-size: 0.9rem;
+        color: #666;
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="container">
+    <h1>Propiedades en renta</h1>
+
+    <div class="filters">
+        <form action="{{ url_for('properties') }}" method="get">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <h3>Ubicación</h3>
+                    <input type="text" name="location" value="{{ request.args.get('location', '') }}" placeholder="Ciudad, colonia, código postal">
+                </div>
+                <div class="filter-group">
+                    <h3>Tipo de propiedad</h3>
+                    <select name="type">
+                        <option value="">Todos</option>
+                        <option value="apartment" {% if request.args.get('type') == 'apartment' %}selected{% endif %}>Departamento</option>
+                        <option value="house" {% if request.args.get('type') == 'house' %}selected{% endif %}>Casa</option>
+                        <option value="room" {% if request.args.get('type') == 'room' %}selected{% endif %}>Cuarto</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="filter-row">
+                <div class="filter-group">
+                    <h3>Rango de precio (MXN)</h3>
+                    <div class="range-inputs">
+                        <input type="number" name="min_price" value="{{ request.args.get('min_price', '0') }}" placeholder="Mínimo">
+                        <span>a</span>
+                        <input type="number" name="max_price" value="{{ request.args.get('max_price', '100000') }}" placeholder="Máximo">
+                    </div>
+                </div>
+                <div class="filter-group">
+                    <h3>Habitaciones</h3>
+                    <select name="bedrooms">
+                        <option value="0">Cualquiera</option>
+                        <option value="1" {% if request.args.get('bedrooms') == '1' %}selected{% endif %}>1+</option>
+                        <option value="2" {% if request.args.get('bedrooms') == '2' %}selected{% endif %}>2+</option>
+                        <option value="3" {% if request.args.get('bedrooms') == '3' %}selected{% endif %}>3+</option>
+                    </select>
+                </div>
+            </div>
+
+            <input type="hidden" name="page" value="1">
+
+            <div class="filter-actions">
+                <button type="submit" class="btn">Aplicar filtros</button>
+                <a href="{{ url_for('properties') }}" class="btn btn-outline">Limpiar filtros</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="results-info">
+        Mostrando {{ properties|length }} de {{ pagination.total }} propiedades
+    </div>
+
+    <div class="property-grid">
+        {% for property in properties %}
+        <div class="property-card">
+            <div class="property-image"
+                 style="background-image: url(
+                     {% if property.images and property.images|length > 0 %}
+                         '{{ url_for('static', filename='uploads/' ~ property.images[0].filename) }}'
+                     {% else %}
+                         'https://via.placeholder.com/400x300'
+                     {% endif %}
+                 );">
+            </div>
+            <div class="property-details">
+                <h3>{{ property.title }}</h3>
+                <p class="location"><i class="fas fa-map-marker-alt"></i> {{ property.location }}</p>
+                <div class="property-features">
+                    <span><i class="fas fa-bed"></i> {{ property.bedrooms }} hab.</span>
+                    <span><i class="fas fa-bath"></i> {{ property.bathrooms }} baños</span>
+                    <span><i class="fas fa-ruler-combined"></i> {{ property.area }} m²</span>
+                </div>
+                <div class="property-footer">
+                    <p class="price">${{ "{:,.0f}".format(property.price) }} MXN/mes</p>
+                    <a href="{{ url_for('property_detail', id=property.id) }}" class="btn">Ver detalles</a>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="no-results">
+            <p>No se encontraron propiedades con los filtros seleccionados.</p>
+            <a href="{{ url_for('properties') }}" class="btn">Ver todas las propiedades</a>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if pagination.pages > 1 %}
+    <div class="pagination">
+        {% if pagination.has_prev %}
+            <a href="{{ url_for('properties', page=pagination.prev_num, location=request.args.get('location'), min_price=request.args.get('min_price'), max_price=request.args.get('max_price'), bedrooms=request.args.get('bedrooms'), type=request.args.get('type')) }}" class="btn">Anterior</a>
+        {% endif %}
+        
+        {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+            {% if page_num %}
+                {% if page_num == pagination.page %}
+                    <span class="current-page">{{ page_num }}</span>
+                {% else %}
+                    <a href="{{ url_for('properties', page=page_num, location=request.args.get('location'), min_price=request.args.get('min_price'), max_price=request.args.get('max_price'), bedrooms=request.args.get('bedrooms'), type=request.args.get('type')) }}" class="btn">{{ page_num }}</a>
+                {% endif %}
+            {% else %}
+                <span class="ellipsis">...</span>
+            {% endif %}
+        {% endfor %}
+        
+        {% if pagination.has_next %}
+            <a href="{{ url_for('properties', page=pagination.next_num, location=request.args.get('location'), min_price=request.args.get('min_price'), max_price=request.args.get('max_price'), bedrooms=request.args.get('bedrooms'), type=request.args.get('type')) }}" class="btn">Siguiente</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const isUserLoggedIn = {{ 'true' if session.get('user_id') else 'false' }};
+        document.querySelectorAll('.favorite-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const propertyId = this.dataset.propertyId;
+
+                if (!isUserLoggedIn) {
+                    window.location.href = "{{ url_for('login') }}";
+                    return;
+                }
+
+                fetch('/api/add_favorite', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ property_id: propertyId })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        this.classList.add('favorited');
+                        this.innerHTML = '<i class="fas fa-heart"></i> Guardado';
+                    }
+                });
+            });
+        });
+    });
+</script>
+{% endblock %}

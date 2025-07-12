@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Iniciar sesión - RentMatch{% endblock %}
+
+{% block content %}
+<section class="auth-container">
+    <div class="auth-form">
+        <h1>Iniciar sesión</h1>
+        
+        {% if error %}
+        <div class="alert alert-error">{{ error }}</div>
+        {% endif %}
+        
+        <form action="{{ url_for('login') }}" method="post">
+            <div class="form-group">
+                <label for="email">Correo electrónico</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Contraseña</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <button type="submit" class="btn btn-block">Iniciar sesión</button>
+        </form>
+        
+        <div class="auth-links">
+            <p>¿No tienes una cuenta? <a href="{{ url_for('register') }}">Regístrate</a></p>
+            <p><a href="#">¿Olvidaste tu contraseña?</a></p>
+        </div>
+    </div>
+    
+    <div class="auth-hero">
+        <h2>Bienvenido de vuelta a RentMatch</h2>
+        <p>Accede a tu cuenta para gestionar tus propiedades, favoritos y contratos.</p>
+        <div class="auth-features">
+            <div class="auth-feature">
+                <i class="fas fa-shield-alt"></i>
+                <p>Plataforma segura y confiable</p>
+            </div>
+            <div class="auth-feature">
+                <i class="fas fa-home"></i>
+                <p>Encuentra tu hogar ideal</p>
+            </div>
+            <div class="auth-feature">
+                <i class="fas fa-handshake"></i>
+                <p>Arrendamiento transparente</p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

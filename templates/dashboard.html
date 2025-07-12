@@ -1,0 +1,361 @@
+{% extends "base.html" %}
+
+{% block title %}Mi Cuenta - RentMatch{% endblock %}
+
+{% block extra_css %}
+<style>
+    .rating-summary {
+        background-color: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin: 1rem 0;
+    }
+    .rating-detail {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    .rating-value {
+        font-size: 1.8rem;
+        font-weight: bold;
+        color: var(--primary-color);
+    }
+    .reviews-count {
+        color: var(--gray-color);
+    }
+    .recent-reviews {
+        margin-top: 2rem;
+    }
+    .review-item {
+        padding: 1rem;
+        border-bottom: 1px solid var(--light-gray);
+    }
+    .review-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+    }
+    .reviewer-name {
+        font-weight: 600;
+    }
+    .review-date {
+        color: var(--gray-color);
+        font-size: 0.9rem;
+    }
+    .request-item {
+        border: 1px solid #ddd;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+    .request-item:hover {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .request-status {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+    .status-pending {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+    .status-accepted {
+        background-color: #d4edda;
+        color: #155724;
+    }
+    .status-rejected {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+    .status-finalized {
+        background-color: #cce5ff;
+        color: #004085;
+    }
+    .request-stage {
+        display: flex;
+        align-items: center;
+        margin: 0.5rem 0;
+    }
+    .stage-bubble {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 0.5rem;
+        font-weight: bold;
+    }
+    .stage-active {
+        background-color: var(--primary-color);
+        color: white;
+    }
+    .stage-completed {
+        background-color: #28a745;
+        color: white;
+    }
+    .stage-pending {
+        background-color: #e9ecef;
+        color: #6c757d;
+    }
+    .stage-line {
+        flex: 1;
+        height: 2px;
+        background-color: #e9ecef;
+        margin: 0 0.5rem;
+    }
+    .stage-line.completed {
+        background-color: #28a745;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% set user_role = session['role'] %}
+<section class="dashboard-container">
+    <div class="dashboard-sidebar">
+        <div class="profile-summary">
+            <div class="profile-avatar">
+                <img src="https://via.placeholder.com/100" alt="Avatar">
+            </div>
+            <h3>{{ session['username'] }}</h3>
+            <p class="role-badge">{{ 'Arrendador' if user_role == 'landlord' else 'Arrendatario' }}</p>
+            <div class="stars" style="--rating: {{ user.rating or 0 }}; font-size: 1.2rem;"></div>
+            <span class="rating-text">{{ "%.1f"|format(user.rating or 0) }} ({{ user.reviews_received.count() }} opiniones)</span>
+        </div>
+
+        <nav class="dashboard-nav">
+            <ul>
+                <li class="active"><a href="#"><i class="fas fa-tachometer-alt"></i> Resumen</a></li>
+                {% if user_role == 'landlord' %}
+                    <li><a href="#"><i class="fas fa-home"></i> Mis propiedades</a></li>
+                    <li><a href="#"><i class="fas fa-file-contract"></i> Contratos</a></li>
+                    <li><a href="#"><i class="fas fa-calendar-alt"></i> Calendario de pagos</a></li>
+                {% else %}
+                    <li><a href="#"><i class="fas fa-heart"></i> Favoritos</a></li>
+                    <li><a href="#"><i class="fas fa-file-contract"></i> Mis contratos</a></li>
+                    <li><a href="#"><i class="fas fa-history"></i> Historial de pagos</a></li>
+                {% endif %}
+                <li><a href="{{ url_for('user_reviews', user_id=user.id) }}"><i class="fas fa-star"></i> Mi reputación</a></li>
+                <li><a href="#"><i class="fas fa-cog"></i> Configuración</a></li>
+            </ul>
+        </nav>
+    </div>
+
+    <div class="dashboard-content">
+        <h2>Resumen de tu cuenta</h2>
+
+        <!-- Sección de Reputación -->
+        <div class="rating-summary">
+            <h3>Tu reputación</h3>
+            <div class="rating-detail">
+                <div class="stars" style="--rating: {{ user.rating or 0 }}; font-size: 2rem;"></div>
+                <div>
+                    <span class="rating-value">{{ "%.1f"|format(user.rating or 0) }}</span>
+                    <span class="reviews-count">de 5 ({{ user.reviews_received.count() }} opiniones)</span>
+                </div>
+            </div>
+
+            {% if recent_reviews %}
+            <div class="recent-reviews">
+                <h4>Últimas opiniones</h4>
+                {% for review in recent_reviews %}
+                <div class="review-item">
+                    <div class="review-header">
+                        <span class="reviewer-name">{{ review.reviewer.username }}</span>
+                        <div class="stars" style="--rating: {{ review.rating }};"></div>
+                        <span class="review-date">{{ review.created_at.strftime('%d/%m/%Y') }}</span>
+                    </div>
+                    <p>{{ review.comment }}</p>
+                </div>
+                {% endfor %}
+                <a href="{{ url_for('user_reviews', user_id=user.id) }}" class="btn">Ver todas las opiniones</a>
+            </div>
+            {% else %}
+            <p>Aún no has recibido opiniones.</p>
+            {% endif %}
+        </div>
+
+        <!-- Propiedades del Arrendador -->
+        {% if user_role == 'landlord' %}
+        <div class="dashboard-section">
+            <h3>Tus propiedades</h3>
+            {% if properties %}
+            <div class="property-grid compact">
+                {% for property in properties %}
+                <div class="property-card">
+                    <div class="property-image"
+                        {% if property.images and property.images|length > 0 %}
+                            style="background-image: url('{{ url_for('static', filename='uploads/' ~ property.images[0].filename) }}');"
+                        {% else %}
+                            style="background-image: url('https://via.placeholder.com/400x300');"
+                        {% endif %}
+                    ></div>
+                    <div class="property-details">
+                        <h4>{{ property.title }}</h4>
+                        <p class="location">{{ property.location }}</p>
+                        <div class="property-features">
+                            <span>${{ "{:,.0f}".format(property.price) }} MXN/mes</span>
+                            <span>{{ property.bedrooms }} hab.</span>
+                        </div>
+                        <div class="property-actions">
+                            <a href="#" class="btn btn-small">Editar</a>
+                            <a href="{{ url_for('property_detail', id=property.id) }}" class="btn btn-small btn-outline">Ver detalles</a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <p>Aún no has publicado ninguna propiedad.</p>
+                <a href="{{ url_for('create_property') }}" class="btn">+ Nueva propiedad</a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Solicitudes de interés recibidas -->
+        <div class="dashboard-section mt-5">
+            <h3>Solicitudes de interés</h3>
+            {% if received_requests %}
+            <div class="requests-list">
+                {% for req in received_requests %}
+                <div class="request-item">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h5>{{ req.property.title }}</h5>
+                            <p>Solicitante: {{ req.tenant.username }}</p>
+                            <p>Fecha: {{ req.created_at.strftime('%d/%m/%Y') }}</p>
+                        </div>
+                        <span class="request-status 
+                            {% if req.status == 'pending' %}status-pending
+                            {% elif req.status == 'accepted' %}status-accepted
+                            {% elif req.status == 'rejected' %}status-rejected
+                            {% elif req.status == 'contract_finalized' %}status-finalized{% endif %}">
+                            {{ req.status|capitalize }}
+                        </span>
+                    </div>
+
+                    {% if req.status == 'accepted' %}
+                    <div class="request-stage mt-3">
+                        <div class="stage-bubble {% if req.stage >= 1 %}stage-completed{% else %}stage-active{% endif %}">1</div>
+                        <div class="stage-line {% if req.stage >= 2 %}completed{% endif %}"></div>
+                        <div class="stage-bubble {% if req.stage >= 2 %}stage-completed{% elif req.stage == 1 %}stage-active{% else %}stage-pending{% endif %}">2</div>
+                        <div class="stage-line {% if req.stage >= 3 %}completed{% endif %}"></div>
+                        <div class="stage-bubble {% if req.stage >= 3 %}stage-completed{% elif req.stage == 2 %}stage-active{% else %}stage-pending{% endif %}">3</div>
+                    </div>
+                    {% endif %}
+
+                    <div class="d-flex justify-content-between mt-3">
+                        <a href="{{ url_for('process_request', request_id=req.id) }}" class="btn btn-primary">
+                            <i class="fas fa-tasks"></i> Ver proceso
+                        </a>
+                        
+                        {% if req.status == 'pending' %}
+                        <form method="POST" action="{{ url_for('handle_interest', request_id=req.id) }}" class="d-inline">
+                            <button name="action" value="reject" class="btn btn-outline-danger">Rechazar</button>
+                            <button name="action" value="accept" class="btn btn-success">Aceptar</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                No tienes solicitudes de interés por el momento.
+            </div>
+            {% endif %}
+        </div>
+        {% else %}
+        <!-- Sección para Arrendatarios -->
+        <div class="dashboard-section">
+            <h3>Tus solicitudes activas</h3>
+            {% if sent_requests %}
+            <div class="requests-list">
+                {% for req in sent_requests %}
+                <div class="request-item">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h5>{{ req.property.title }}</h5>
+                            <p>Arrendador: {{ req.landlord.username }}</p>
+                            <p>Fecha: {{ req.created_at.strftime('%d/%m/%Y') }}</p>
+                        </div>
+                        <span class="request-status 
+                            {% if req.status == 'pending' %}status-pending
+                            {% elif req.status == 'accepted' %}status-accepted
+                            {% elif req.status == 'rejected' %}status-rejected
+                            {% elif req.status == 'contract_finalized' %}status-finalized{% endif %}">
+                            {{ req.status|capitalize }}
+                        </span>
+                    </div>
+
+                    {% if req.status == 'accepted' %}
+                    <div class="request-stage mt-3">
+                        <div class="stage-bubble {% if req.stage >= 1 %}stage-completed{% else %}stage-active{% endif %}">1</div>
+                        <div class="stage-line {% if req.stage >= 2 %}completed{% endif %}"></div>
+                        <div class="stage-bubble {% if req.stage >= 2 %}stage-completed{% elif req.stage == 1 %}stage-active{% else %}stage-pending{% endif %}">2</div>
+                        <div class="stage-line {% if req.stage >= 3 %}completed{% endif %}"></div>
+                        <div class="stage-bubble {% if req.stage >= 3 %}stage-completed{% elif req.stage == 2 %}stage-active{% else %}stage-pending{% endif %}">3</div>
+                    </div>
+                    {% endif %}
+
+                    <div class="mt-3">
+                        <a href="{{ url_for('process_request', request_id=req.id) }}" class="btn btn-primary">
+                            <i class="fas fa-tasks"></i> {% if req.status == 'accepted' %}Continuar proceso{% else %}Ver detalles{% endif %}
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                No tienes solicitudes activas actualmente.
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Favoritos del Arrendatario -->
+        <div class="dashboard-section mt-5">
+            <h3>Tus propiedades favoritas</h3>
+            {% if favorites %}
+            <div class="property-grid compact">
+                {% for property in favorites %}
+                <div class="property-card">
+                    <div class="property-image"
+                        {% if property.images and property.images|length > 0 %}
+                            style="background-image: url('{{ url_for('static', filename='uploads/' ~ property.images[0].filename) }}');"
+                        {% else %}
+                            style="background-image: url('https://via.placeholder.com/400x300');"
+                        {% endif %}
+                    ></div>
+                    <div class="property-details">
+                        <h4>{{ property.title }}</h4>
+                        <p class="location">{{ property.location }}</p>
+                        <div class="property-features">
+                            <span>${{ "{:,.0f}".format(property.price) }} MXN/mes</span>
+                            <span>{{ property.bedrooms }} hab.</span>
+                        </div>
+                        <div class="property-actions">
+                            <a href="{{ url_for('property_detail', id=property.id) }}" class="btn btn-small btn-outline">Ver detalles</a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <p>Aún no tienes propiedades favoritas.</p>
+                <a href="{{ url_for('properties') }}" class="btn">Buscar propiedades</a>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

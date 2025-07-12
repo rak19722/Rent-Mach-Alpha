@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}Inicio - RentMatch{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div class="hero-content">
+        <h1>Encuentra tu hogar ideal con RentMatch</h1>
+        <p>La plataforma de arrendamiento más transparente y confiable</p>
+        <a href="{{ url_for('properties') }}" class="btn btn-large">Explorar propiedades</a>
+    </div>
+</section>
+
+<section class="features">
+    <div class="feature">
+        <i class="fas fa-check-circle"></i>
+        <h3>Perfiles verificados</h3>
+        <p>Arrendadores y arrendatarios con identidad confirmada.</p>
+    </div>
+    <div class="feature">
+        <i class="fas fa-star"></i>
+        <h3>Sistema de reputación</h3>
+        <p>Calificaciones basadas en historial real.</p>
+        <a href="{{ url_for('reputations') }}" class="btn btn-small">Ver reputaciones</a>
+    </div>
+    <div class="feature">
+        <i class="fas fa-file-contract"></i>
+        <h3>Contratos digitales</h3>
+        <p>Firma electrónica y gestión sencilla.</p>
+    </div>
+</section>
+
+<section class="recent-properties">
+    <h2>Propiedades destacadas</h2>
+    <div class="property-grid">
+        {% for property in properties %}
+        <div class="property-card">
+            <div class="property-image"
+                 style="background-image: url(
+                     {% if property.images and property.images|length > 0 %}
+                         '{{ url_for('static', filename='uploads/' ~ property.images[0].filename) }}'
+                     {% else %}
+                         'https://via.placeholder.com/400x300'
+                     {% endif %}
+                 );">
+            </div>
+            <div class="property-details">
+                <h3>{{ property.title }}</h3>
+                <p class="location"><i class="fas fa-map-marker-alt"></i> {{ property.location }}</p>
+                <div class="property-features">
+                    <span><i class="fas fa-bed"></i> {{ property.bedrooms }} hab.</span>
+                    <span><i class="fas fa-bath"></i> {{ property.bathrooms }} baños</span>
+                    <span><i class="fas fa-ruler-combined"></i> {{ property.area }} m²</span>
+                </div>
+                <div class="property-footer">
+                    <p class="price">${{ "{:,.0f}".format(property.price) }} MXN/mes</p>
+                    <a href="{{ url_for('property_detail', id=property.id) }}" class="btn">Ver detalles</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    <div class="center">
+        <a href="{{ url_for('properties') }}" class="btn btn-large">Ver todas las propiedades</a>
+    </div>
+</section>
+
+<section class="how-it-works">
+    <h2>¿Cómo funciona RentMatch?</h2>
+    <div class="steps">
+        <div class="step">
+            <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Paso 1 - Perfil">
+            <div class="step-number">1</div>
+            <h3>Crea tu perfil</h3>
+            <p>Regístrate como arrendador o arrendatario y completa tu perfil con datos confiables.</p>
+        </div>
+        <div class="step">
+            <img src="https://cdn-icons-png.flaticon.com/512/854/854878.png" alt="Paso 2 - Publica">
+            <div class="step-number">2</div>
+            <h3>Encuentra o publica</h3>
+            <p>Explora inmuebles o publica el tuyo con imágenes, precios y detalles clave.</p>
+        </div>
+        <div class="step">
+            <img src="https://cdn-icons-png.flaticon.com/512/4205/4205951.png" alt="Paso 3 - Conecta">
+            <div class="step-number">3</div>
+            <h3>Conecta con confianza</h3>
+            <p>Consulta reputaciones verificadas y comunícate de forma segura con otros usuarios.</p>
+        </div>
+        <div class="step">
+            <img src="https://cdn-icons-png.flaticon.com/512/2798/2798007.png" alt="Paso 4 - Gestiona">
+            <div class="step-number">4</div>
+            <h3>Gestiona tu arrendamiento</h3>
+            <p>Controla contratos, pagos y procesos directamente desde la plataforma.</p>
+        </div>
+    </div>
+</section>
+
+
+
+<script>
+// Manejar favoritos
+document.querySelectorAll('.favorite-btn').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        const propertyId = this.dataset.propertyId;
+        
+        // Verificar si el usuario está logueado
+        if (!this.classList.contains('logged-in')) {
+            window.location.href = "/login";
+            return;
+        }
+        
+        // Cambiar estado visual
+        this.classList.toggle('favorited');
+        
+        // Actualizar icono del botón
+        const icon = this.querySelector('i');
+        if (this.classList.contains('favorited')) {
+            icon.classList.remove('far');
+            icon.classList.add('fas');
+            this.innerHTML = '<i class="fas fa-heart"></i> Guardado';
+        } else {
+            icon.classList.remove('fas');
+            icon.classList.add('far');
+            this.innerHTML = '<i class="far fa-heart"></i> Guardar';
+        }
+        
+        // Enviar petición al servidor
+        fetch('/api/add_favorite', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ property_id: propertyId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                alert(data.error || 'Error al guardar favorito');
+                // Revertir cambios visuales si falla
+                this.classList.toggle('favorited');
+                const icon = this.querySelector('i');
+                if (this.classList.contains('favorited')) {
+                    icon.classList.remove('far');
+                    icon.classList.add('fas');
+                } else {
+                    icon.classList.remove('fas');
+                    icon.classList.add('far');
+                }
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

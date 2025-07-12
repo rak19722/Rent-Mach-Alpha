@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Reputaciones - RentMatch{% endblock %}
+
+{% block content %}
+<section class="reputations-search">
+    <h1>Buscar reputaciones</h1>
+    <p>Consulta las opiniones y calificaciones de arrendadores y arrendatarios</p>
+    
+    <form method="POST" action="{{ url_for('reputations') }}" class="search-form">
+        <input type="text" name="search_query" placeholder="Buscar por nombre..." 
+               value="{{ search_query if search_query }}" required>
+        <button type="submit" class="btn">Buscar</button>
+    </form>
+</section>
+
+{% if users %}
+<section class="search-results">
+    <h2>Resultados de búsqueda</h2>
+    
+    <div class="users-list">
+        {% for user in users %}
+        <div class="user-card">
+            <div class="user-info">
+                <h3>{{ user.username }}</h3>
+                <div class="user-rating">
+                    <div class="stars" style="--rating: {{ user.rating or 0 }};"></div>
+                    <span>{{ "%.1f"|format(user.rating or 0) }} ({{ user.reviews_received.count() }} opiniones)</span>
+                </div>
+                <p class="user-role">{{ 'Arrendador' if user.role == 'landlord' else 'Arrendatario' }}</p>
+            </div>
+            <a href="{{ url_for('user_reviews', user_id=user.id) }}" class="btn">Ver reputación</a>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% elif search_query %}
+<section class="no-results">
+    <p>No se encontraron usuarios con ese nombre.</p>
+</section>
+{% endif %}
+
+{% if not search_query %}
+<section class="recent-reviews">
+    <h2>Usuarios recientemente calificados</h2>
+    
+    <div class="users-list">
+        {% for user in users %}
+        <div class="user-card">
+            <div class="user-info">
+                <h3>{{ user.username }}</h3>
+                <div class="user-rating">
+                    <div class="stars" style="--rating: {{ user.rating or 0 }};"></div>
+                    <span>{{ "%.1f"|format(user.rating or 0) }} ({{ user.reviews_received.count() }} opiniones)</span>
+                </div>
+                <p class="user-role">{{ 'Arrendador' if user.role == 'landlord' else 'Arrendatario' }}</p>
+            </div>
+            <a href="{{ url_for('user_reviews', user_id=user.id) }}" class="btn">Ver reputación</a>
+        </div>
+        {% else %}
+        <p>Aún no hay calificaciones recientes.</p>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+{% endblock %}
