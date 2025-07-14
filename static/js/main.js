@@ -1,14 +1,14 @@
 // Manejar el menú móvil
 document.addEventListener('DOMContentLoaded', function() {
     // Toggle del menú móvil (si se añade)
-    const mobileMenuButton = document.querySelector('.mobile-menu-button');
-    const mobileMenu = document.querySelector('.mobile-menu');
+      const toggle = document.getElementById('menu-toggle');
+  const nav = document.getElementById('nav-links');
+
+  toggle.addEventListener('click', () => {
+    nav.classList.toggle('active');
+  });
+
     
-    if (mobileMenuButton && mobileMenu) {
-        mobileMenuButton.addEventListener('click', function() {
-            mobileMenu.classList.toggle('active');
-        });
-    }
     
     // Manejar favoritos
     document.querySelectorAll('.favorite-btn').forEach(btn => {

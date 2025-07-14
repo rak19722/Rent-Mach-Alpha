@@ -100,9 +100,9 @@ img {
 /* NAVBAR GENERAL */
 .navbar {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 0;
+  justify-content: space-between; /* ← ¡Corregido! */
+  align-items: center;            /* ← Mejor usar center para alinear verticalmente */
+  padding: 1rem;
   background-color: white;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   position: sticky;
