@@ -4,6 +4,8 @@
 
 {% block extra_css %}
 <style>
+
+
     .property-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -99,6 +101,24 @@
         Mostrando {{ properties|length }} de {{ pagination.total }} propiedades
     </div>
 
+    <div class="sorting-options">
+    <div class="dropdown">
+        <button class="btn dropdown-toggle" type="button" id="sortDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+            Ordenar por: 
+            {% if sort_by == 'price_asc' %}Precio (menor a mayor)
+            {% elif sort_by == 'price_desc' %}Precio (mayor a menor)
+            {% elif sort_by == 'rating' %}Mejores reputaciones
+            {% else %}Más recientes{% endif %}
+        </button>
+        <ul class="dropdown-menu" aria-labelledby="sortDropdown">
+            <li><a class="dropdown-item" href="{{ url_for('properties', sort_by='newest', location=request.args.get('location'), min_price=request.args.get('min_price'), max_price=request.args.get('max_price'), bedrooms=request.args.get('bedrooms'), type=request.args.get('type')) }}">Más recientes</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('properties', sort_by='price_asc', location=request.args.get('location'), min_price=request.args.get('min_price'), max_price=request.args.get('max_price'), bedrooms=request.args.get('bedrooms'), type=request.args.get('type')) }}">Precio (menor a mayor)</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('properties', sort_by='price_desc', location=request.args.get('location'), min_price=request.args.get('min_price'), max_price=request.args.get('max_price'), bedrooms=request.args.get('bedrooms'), type=request.args.get('type')) }}">Precio (mayor a menor)</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('properties', sort_by='rating', location=request.args.get('location'), min_price=request.args.get('min_price'), max_price=request.args.get('max_price'), bedrooms=request.args.get('bedrooms'), type=request.args.get('type')) }}">Mejores reputaciones</a></li>
+        </ul>
+    </div>
+</div>
+
     <div class="property-grid">
         {% for property in properties %}
         <div class="property-card">
@@ -136,24 +156,48 @@
     {% if pagination.pages > 1 %}
     <div class="pagination">
         {% if pagination.has_prev %}
-            <a href="{{ url_for('properties', page=pagination.prev_num, location=request.args.get('location'), min_price=request.args.get('min_price'), max_price=request.args.get('max_price'), bedrooms=request.args.get('bedrooms'), type=request.args.get('type')) }}" class="btn">Anterior</a>
+    <a href="{{ url_for('properties', 
+        page=pagination.prev_num, 
+        location=request.args.get('location'), 
+        min_price=request.args.get('min_price'), 
+        max_price=request.args.get('max_price'), 
+        bedrooms=request.args.get('bedrooms'), 
+        type=request.args.get('type'), 
+        sort_by=request.args.get('sort_by', 'newest')) }}" 
+        class="btn">Anterior</a>
+{% endif %}
+
+{% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+    {% if page_num %}
+        {% if page_num == pagination.page %}
+            <span class="current-page">{{ page_num }}</span>
+        {% else %}
+            <a href="{{ url_for('properties', 
+                page=page_num, 
+                location=request.args.get('location'), 
+                min_price=request.args.get('min_price'), 
+                max_price=request.args.get('max_price'), 
+                bedrooms=request.args.get('bedrooms'), 
+                type=request.args.get('type'), 
+                sort_by=request.args.get('sort_by', 'newest')) }}" 
+                class="btn">{{ page_num }}</a>
         {% endif %}
-        
-        {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
-            {% if page_num %}
-                {% if page_num == pagination.page %}
-                    <span class="current-page">{{ page_num }}</span>
-                {% else %}
-                    <a href="{{ url_for('properties', page=page_num, location=request.args.get('location'), min_price=request.args.get('min_price'), max_price=request.args.get('max_price'), bedrooms=request.args.get('bedrooms'), type=request.args.get('type')) }}" class="btn">{{ page_num }}</a>
-                {% endif %}
-            {% else %}
-                <span class="ellipsis">...</span>
-            {% endif %}
-        {% endfor %}
-        
-        {% if pagination.has_next %}
-            <a href="{{ url_for('properties', page=pagination.next_num, location=request.args.get('location'), min_price=request.args.get('min_price'), max_price=request.args.get('max_price'), bedrooms=request.args.get('bedrooms'), type=request.args.get('type')) }}" class="btn">Siguiente</a>
-        {% endif %}
+    {% else %}
+        <span class="ellipsis">...</span>
+    {% endif %}
+{% endfor %}
+
+{% if pagination.has_next %}
+    <a href="{{ url_for('properties', 
+        page=pagination.next_num, 
+        location=request.args.get('location'), 
+        min_price=request.args.get('min_price'), 
+        max_price=request.args.get('max_price'), 
+        bedrooms=request.args.get('bedrooms'), 
+        type=request.args.get('type'), 
+        sort_by=request.args.get('sort_by', 'newest')) }}" 
+        class="btn">Siguiente</a>
+{% endif %}
     </div>
     {% endif %}
 </section>
@@ -190,5 +234,25 @@
             });
         });
     });
+document.addEventListener('DOMContentLoaded', function() {
+    // Alternativa simple para el dropdown si no usas Bootstrap
+    const dropdownToggle = document.querySelector('.dropdown-toggle');
+    if (dropdownToggle) {
+        dropdownToggle.addEventListener('click', function() {
+            const dropdownMenu = this.nextElementSibling;
+            dropdownMenu.style.display = dropdownMenu.style.display === 'block' ? 'none' : 'block';
+        });
+        
+        // Cerrar el dropdown al hacer clic fuera
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.dropdown')) {
+                const dropdowns = document.querySelectorAll('.dropdown-menu');
+                dropdowns.forEach(dropdown => {
+                    dropdown.style.display = 'none';
+                });
+            }
+        });
+    }
+});
 </script>
 {% endblock %}

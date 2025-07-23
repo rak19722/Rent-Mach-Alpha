@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Editar' if property else 'Nueva' }} propiedad - RentMatch{% endblock %}
+
+{% block content %}
+<section class="container">
+    <h1>{{ 'Editar' if property else 'Publicar nueva' }} propiedad</h1>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="alert alert-success">{{ messages[0] }}</div>
+      {% endif %}
+    {% endwith %}
+
+    <form action="{{ url_for('edit_property', id=property.id) if property else url_for('create_property') }}" method="post" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="title">Título</label>
+            <input type="text" id="title" name="title" value="{{ property.title if property }}" required>
+        </div>
+        <div class="form-group">
+            <label for="description">Descripción</label>
+            <textarea id="description" name="description" rows="4" required>{{ property.description if property }}</textarea>
+        </div>
+        <div class="form-group">
+            <label for="price">Precio (MXN/mes)</label>
+            <input type="number" step="0.01" id="price" name="price" value="{{ property.price if property }}" required>
+        </div>
+        <div class="form-group">
+            <label for="location">Ubicación</label>
+            <input type="text" id="location" name="location" value="{{ property.location if property }}" required>
+        </div>
+        <div class="form-group">
+            <label for="bedrooms">Habitaciones</label>
+            <input type="number" id="bedrooms" name="bedrooms" value="{{ property.bedrooms if property }}" required>
+        </div>
+        <div class="form-group">
+            <label for="bathrooms">Baños</label>
+            <input type="number" id="bathrooms" name="bathrooms" value="{{ property.bathrooms if property }}" required>
+        </div>
+        <div class="form-group">
+            <label for="area">Área (m²)</label>
+            <input type="number" step="0.1" id="area" name="area" value="{{ property.area if property }}" required>
+        </div>
+        <div class="form-group">
+            <label for="type">Tipo de propiedad</label>
+            <select id="type" name="type" required>
+                <option value="">Selecciona</option>
+                <option value="apartment" {{ 'selected' if property and property.type == 'apartment' }}>Departamento</option>
+                <option value="house" {{ 'selected' if property and property.type == 'house' }}>Casa</option>
+                <option value="room" {{ 'selected' if property and property.type == 'room' }}>Cuarto</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label><input type="checkbox" name="pet_friendly" {{ 'checked' if property and property.pet_friendly }}> Acepta mascotas</label>
+        </div>
+        <div class="form-group">
+            <label for="new_images">Imágenes adicionales (máx. 10)</label>
+            <input type="file" name="images" multiple accept="image/*">
+            {% if property %}
+            <div class="current-images">
+                <h4>Imágenes actuales:</h4>
+                <div class="image-grid">
+                    {% for image in property.images %}
+                    <div class="image-item">
+                        <img src="{{ url_for('static', filename='uploads/' + image.filename) }}" alt="Imagen propiedad">
+                        <a href="{{ url_for('delete_image', id=image.id) }}" class="btn-delete" onclick="return confirm('¿Eliminar esta imagen?')">Eliminar</a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        <button type="submit" class="btn btn-primary">{{ 'Actualizar' if property else 'Publicar' }} propiedad</button>
+    </form>
+</section>
+{% endblock %}

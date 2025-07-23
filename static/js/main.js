@@ -1,14 +1,14 @@
 // Manejar el menú móvil
 document.addEventListener('DOMContentLoaded', function() {
     // Toggle del menú móvil (si se añade)
-      const toggle = document.getElementById('menu-toggle');
-  const nav = document.getElementById('nav-links');
-
-  toggle.addEventListener('click', () => {
-    nav.classList.toggle('active');
-  });
-
+    const mobileMenuButton = document.querySelector('.mobile-menu-button');
+    const mobileMenu = document.querySelector('.mobile-menu');
     
+    if (mobileMenuButton && mobileMenu) {
+        mobileMenuButton.addEventListener('click', function() {
+            mobileMenu.classList.toggle('active');
+        });
+    }
     
     // Manejar favoritos
     document.querySelectorAll('.favorite-btn').forEach(btn => {
@@ -61,16 +61,27 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Mostrar/ocultar contraseña
-    const togglePassword = document.querySelector('.toggle-password');
-    if (togglePassword) {
-        togglePassword.addEventListener('click', function() {
-            const passwordInput = this.previousElementSibling;
-            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-            passwordInput.setAttribute('type', type);
-            this.classList.toggle('fa-eye');
-            this.classList.toggle('fa-eye-slash');
-        });
-    }
+   document.addEventListener("DOMContentLoaded", function () {
+    const togglePassword = document.getElementById("togglePassword");
+    const passwordField = document.getElementById("password");
+
+    togglePassword.addEventListener("click", function () {
+        // Cambiar el tipo de input entre 'password' y 'text'
+        const isPasswordHidden = passwordField.type === "password"; // Verifica si está oculto
+        passwordField.type = isPasswordHidden ? "text" : "password";
+
+        // Alternar la clase 'active' en el ícono para reflejar el estado visual
+        this.classList.toggle("active", isPasswordHidden);
+    });
+});
+
+// Aquí puedes agregar cualquier comportamiento dinámico si es necesario
+// Ejemplo: Cambiar las iniciales con el nombre del usuario al iniciar sesión
+document.addEventListener('DOMContentLoaded', () => {
+    // Cambiar las iniciales del usuario (esto depende de tu lógica backend)
+    const userInitials = 'DN'; // Suponiendo que 'DN' son las iniciales del usuario
+    document.getElementById('user-initials').textContent = userInitials;
+});
     
     // Cargar más propiedades (simulado)
     const loadMoreBtn = document.querySelector('.load-more');

@@ -100,9 +100,9 @@ img {
 /* NAVBAR GENERAL */
 .navbar {
   display: flex;
-  justify-content: space-between; /* ← ¡Corregido! */
-  align-items: center;            /* ← Mejor usar center para alinear verticalmente */
-  padding: 1rem;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 0;
   background-color: white;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   position: sticky;
@@ -1027,4 +1027,36 @@ footer {
   width: calc(var(--rating, 0) / 5 * 100%);
   overflow: hidden;
   white-space: nowrap;
+}
+
+/* Estilos para la sección de accesos rápidos */
+.quick-access .card {
+    transition: transform 0.3s;
+    border: 1px solid rgba(0,0,0,0.1);
+}
+
+.quick-access .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.quick-access .card-body {
+    padding: 1.25rem;
+}
+
+.user-details {
+    text-align: left;
+    padding: 0 1rem;
+}
+
+.user-details p {
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #eee;
+}
+
+.user-details strong {
+    display: inline-block;
+    width: 120px;
+    color: #555;
 }

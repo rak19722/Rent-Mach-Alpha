@@ -3,98 +3,683 @@
 {% block title %}Reputación de {{ user.username }} - RentMatch{% endblock %}
 
 {% block content %}
-<section class="user-reputation-header">
-    <h1>Reputación de {{ user.username }}</h1>
-    <p class="user-role">{{ 'Arrendador' if user.role == 'landlord' else 'Arrendatario' }}</p>
-    
-    <div class="rating-summary">
-        <div class="overall-rating">
-            <div class="stars" style="--rating: {{ avg_rating }};"></div>
-            <span class="rating-value">{{ avg_rating }}</span>
-            <span class="rating-count">({{ reviews|length }} opiniones)</span>
+<div class="reputation-container">
+    <section class="user-reputation-header">
+        <div class="profile-summary">
+    <div class="avatar">
+        <img src="{{ url_for('static', filename='images/default-avatar.jpg') }}" alt="{% if user.is_external %}{{ user.external_name }}{% else %}{{ user.username }}{% endif %}">
+    </div>
+    <div class="user-info">
+        <h1>
+            {% if user.is_external %}
+                {{ user.external_name }}
+                <span class="badge badge-secondary">Perfil Externo</span>
+            {% else %}
+                {{ user.username }}
+            {% endif %}
+        </h1>
+        <p class="user-role">{{ 'Arrendador' if user.role == 'landlord' else 'Arrendatario' }}</p>
+    </div>
+</div>
+        
+        <div class="rating-summary">
+            <div class="overall-rating">
+                <div class="stars" style="--rating: {{ avg_rating }};"></div>
+                <span class="rating-value">{{ avg_rating }}</span>
+                <span class="rating-count">{{ total_reviews }} opiniones</span>
+            </div>
+            
+            <div class="rating-distribution">
+                {% for i in range(5, 0, -1) %}
+                <div class="rating-bar">
+                    <span class="stars">{{ i }}★</span>
+                    <div class="bar-container">
+                        <div class="bar" style="width: {{ (rating_counts[i]/total_reviews*100) if total_reviews > 0 else 0 }}%"></div>
+                    </div>
+                    <span class="count">{{ rating_counts[i] }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <section class="reviews-section">
+    <div class="reviews-header">
+        <h2>Opiniones</h2>
+        
+        <div class="filters">
+            <form class="filter-form" method="get">
+                <select name="rating" onchange="this.form.submit()">
+                    <option value="">Todas las calificaciones</option>
+                    {% for i in range(5, 0, -1) %}
+                    <option value="{{ i }}" {% if request.args.get('rating') == i|string %}selected{% endif %}>{{ i }} estrellas</option>
+                    {% endfor %}
+                </select>
+                
+                <select name="sort" onchange="this.form.submit()">
+                    <option value="recent" {% if request.args.get('sort') == 'recent' %}selected{% endif %}>Más recientes</option>
+                    <option value="helpful" {% if request.args.get('sort') == 'helpful' %}selected{% endif %}>Más útiles</option>
+                    <option value="verified" {% if request.args.get('sort') == 'verified' %}selected{% endif %}>Verificadas primero</option>
+                </select>
+            </form>
         </div>
     </div>
-</section>
-
-<section class="reviews-list">
-    <h2>Opiniones</h2>
     
     {% if reviews %}
-    <div class="reviews">
+    <div class="reviews-list">
         {% for review in reviews %}
-        <div class="review-card">
+        <div class="review-card {% if review.is_verified %}verified-review{% endif %}" id="review-{{ review.id }}">
             <div class="review-header">
                 <div class="reviewer-info">
+                    {% if review.anonymous %}
+                    <h4>Anónimo</h4>
+                    {% else %}
                     <h4>{{ review.reviewer.username }}</h4>
+                    {% endif %}
                     <div class="stars" style="--rating: {{ review.rating }};"></div>
+                    <span class="rating-number">{{ review.rating }}/5</span>
+                    
+                    {% if review.had_rental %}
+                    <span class="verified-badge" title="Usuario verificó un arriendo con esta persona">
+                        <i class="fas fa-check-circle"></i> Arriendo confirmado
+                    </span>
+                    {% endif %}
+                    
+                    {% if review.property %}
+                    <a href="{{ url_for('property_detail', id=review.property.id) }}" class="property-link">
+                        {{ review.property.title }}
+                    </a>
+                    {% endif %}
                 </div>
                 <span class="review-date">{{ review.created_at.strftime('%d/%m/%Y') }}</span>
             </div>
+            
             <div class="review-content">
                 <p>{{ review.comment }}</p>
             </div>
+            
+            <div class="review-footer">
+                <div class="helpful-actions">              
+                {% if review.reviewed_id == current_user_id and not review.reply %}
+                <button class="reply-btn" onclick="showReplyForm({{review.id }})">Responder</button>
+                {% endif %}
+            </div>
+            
+            {% if review.reply %}
+            <div class="review-reply">
+                <div class="reply-header">
+                    <strong>Respuesta de {{ user.username }}</strong>
+                    <span>{{ review.reply_date.strftime('%d/%m/%Y') }}</span>
+                </div>
+                <p>{{ review.reply }}</p>
+            </div>
+            {% endif %}
         </div>
         {% endfor %}
+        
+        <!-- Paginación -->
+        <div class="pagination">
+            {% if pagination.has_prev %}
+            <a href="{{ url_for('user_reviews', user_id=user.id, page=pagination.prev_num, rating=request.args.get('rating'), sort=request.args.get('sort')) }}">&laquo; Anterior</a>
+            {% endif %}
+            
+            {% for page_num in pagination.iter_pages() %}
+                {% if page_num %}
+                    <a href="{{ url_for('user_reviews', user_id=user.id, page=page_num, rating=request.args.get('rating'), sort=request.args.get('sort')) }}" 
+                       class="{% if page_num == pagination.page %}active{% endif %}">
+                        {{ page_num }}
+                    </a>
+                {% else %}
+                    <span class="ellipsis">...</span>
+                {% endif %}
+            {% endfor %}
+            
+            {% if pagination.has_next %}
+            <a href="{{ url_for('user_reviews', user_id=user.id, page=pagination.next_num, rating=request.args.get('rating'), sort=request.args.get('sort')) }}">Siguiente &raquo;</a>
+            {% endif %}
+        </div>
     </div>
     {% else %}
-    <p>Este usuario aún no tiene opiniones.</p>
+    <div class="no-reviews">
+        <p>Este usuario aún no tiene opiniones.</p>
+    </div>
     {% endif %}
-</section>
-
-{% if 'user_id' in session and session['user_id'] != user.id %}
+    
+    <!-- Formulario de review -->
+    {% if can_review %}
 <section class="add-review">
     <h2>Dejar una opinión</h2>
     <form id="review-form" action="{{ url_for('submit_review') }}" method="POST">
+        <!-- Campos ocultos obligatorios -->
         <input type="hidden" name="reviewed_id" value="{{ user.id }}">
         <input type="hidden" name="role_reviewed" value="{{ user.role }}">
         
+        <!-- Calificación -->
         <div class="form-group">
-            <label for="rating">Calificación:</label>
-            <div class="rating-input">
-                <input type="radio" id="star5" name="rating" value="5" required><label for="star5"></label>
-                <input type="radio" id="star4" name="rating" value="4"><label for="star4"></label>
-                <input type="radio" id="star3" name="rating" value="3"><label for="star3"></label>
-                <input type="radio" id="star2" name="rating" value="2"><label for="star2"></label>
-                <input type="radio" id="star1" name="rating" value="1"><label for="star1"></label>
-            </div>
+            <label for="rating">Calificación *</label>
+            <select name="rating" id="rating" required>
+                <option value="">Selecciona una calificación</option>
+                {% for i in range(1, 6) %}
+                <option value="{{ i }}">{{ i }} estrella{% if i > 1 %}s{% endif %}</option>
+                {% endfor %}
+            </select>
         </div>
         
+        <!-- Comentario -->
         <div class="form-group">
-            <label for="comment">Comentario:</label>
-            <textarea name="comment" id="comment" rows="4" required></textarea>
+            <label for="comment">Comentario *</label>
+            <textarea name="comment" id="comment" rows="5" required></textarea>
         </div>
         
-        <button type="submit" class="btn">Enviar opinión</button>
+        <!-- Propiedad relacionada (opcional) -->
+        <div class="form-group">
+            <label for="property_id">Propiedad relacionada (opcional):</label>
+            <select name="property_id" id="property_id">
+                <option value="">Seleccionar propiedad</option>
+                {% if tenant_requests %}
+                    {% for request in tenant_requests %}
+                        <option value="{{ request.property.id }}">{{ request.property.title }}</option>
+                    {% endfor %}
+                {% endif %}
+            </select>
+        </div>
+        
+        <!-- Anónimo -->
+        <div class="form-group checkbox">
+            <input type="checkbox" id="anonymous" name="anonymous">
+            <label for="anonymous">Publicar como anónimo</label>
+        </div>
+        
+        <!-- Nota de verificación -->
+        {% if had_rental %}
+        <div class="form-note verified">
+            <i class="fas fa-check-circle"></i> Tu review será marcada como verificada por tener historial de arriendo
+        </div>
+        {% endif %}
+        
+        <button type="submit" class="submit-btn">Enviar opinión</button>
     </form>
 </section>
+{% endif %}
+</section>
+</div>
+
+<!-- Formulario de respuesta (hidden) -->
+<div id="reply-form-container" style="display: none;">
+    <form id="reply-form" onsubmit="submitReply(event)">
+        <input type="hidden" id="reply-review-id">
+        <div class="form-group">
+            <label for="reply-text">Tu respuesta:</label>
+            <textarea id="reply-text" rows="3" required></textarea>
+        </div>
+        <button type="submit" class="btn">Enviar respuesta</button>
+        <button type="button" class="btn cancel" onclick="hideReplyForm()">Cancelar</button>
+    </form>
+</div>
 
 <script>
-document.getElementById('review-form').addEventListener('submit', async function(e) {
-    e.preventDefault();
+
+// Funciones para respuestas
+let currentReviewId = null;
+
+function showReplyForm(reviewId) {
+    currentReviewId = reviewId;
+    const form = document.getElementById('reply-form-container');
+    form.style.display = 'block';
+    document.getElementById('reply-review-id').value = reviewId;
+    form.scrollIntoView({ behavior: 'smooth' });
+}
+
+function hideReplyForm() {
+    document.getElementById('reply-form-container').style.display = 'none';
+    document.getElementById('reply-text').value = '';
+    currentReviewId = null;
+}
+
+async function submitReply(event) {
+    event.preventDefault();
+    const replyText = document.getElementById('reply-text').value.trim();
     
-    const formData = new FormData(this);
+    if (!replyText) {
+        alert('Por favor escribe una respuesta');
+        return;
+    }
     
     try {
-        const response = await fetch(this.action, {
+        const response = await fetch('/api/review/reply', {
             method: 'POST',
-            body: formData,
             headers: {
+                'Content-Type': 'application/json',
                 'Accept': 'application/json'
-            }
+            },
+            body: JSON.stringify({
+                review_id: currentReviewId,
+                reply: replyText
+            })
         });
         
         const result = await response.json();
         
         if (result.success) {
-            alert(result.message || '¡Tu opinión ha sido enviada con éxito!');
-            window.location.reload();
+            window.location.reload(); // Recargar para mostrar la nueva respuesta
         } else {
-            alert(result.error || 'Hubo un error al enviar tu opinión');
+            alert(result.error || 'Error al enviar tu respuesta');
+        }
+    } catch (error) {
+        alert('Error de conexión');
+    }
+}
+
+// Envío del formulario de review
+document.getElementById('review-form')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const form = e.target;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    
+    // Validación básica
+    if (!form.rating.value) {
+        alert('Por favor selecciona una calificación');
+        return;
+    }
+    
+    if (!form.comment.value.trim()) {
+        alert('Por favor escribe un comentario');
+        return;
+    }
+    
+    // Deshabilitar botón durante el envío
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Enviando...';
+    
+    try {
+        const formData = new FormData(form);
+        const response = await fetch(form.action, {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('¡Tu opinión ha sido enviada con éxito!');
+            window.location.reload(); // Recargar para mostrar la nueva review
+        } else {
+            alert(result.error || 'Error al enviar tu opinión');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Enviar opinión';
         }
     } catch (error) {
         alert('Error de conexión. Por favor intenta nuevamente.');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Enviar opinión';
     }
 });
+
+
 </script>
-{% endif %}
+
+<style>
+/* Estilos mejorados para el sistema de reviews */
+.reputation-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.user-reputation-header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 30px;
+    margin-bottom: 40px;
+    align-items: center;
+}
+
+.profile-summary {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.avatar img {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.user-info h1 {
+    margin: 0;
+    font-size: 1.8rem;
+}
+
+.user-role {
+    color: #666;
+    font-style: italic;
+}
+
+.member-since {
+    color: #888;
+    font-size: 0.9rem;
+}
+
+.rating-summary {
+    flex: 1;
+    min-width: 300px;
+}
+
+.overall-rating {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.rating-value {
+    font-size: 2rem;
+    font-weight: bold;
+}
+
+.rating-count {
+    color: #666;
+}
+
+.rating-distribution {
+    width: 100%;
+}
+
+.rating-bar {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.rating-bar .stars {
+    width: 60px;
+    color: #ffc107;
+}
+
+.bar-container {
+    flex: 1;
+    height: 10px;
+    background: #eee;
+    border-radius: 5px;
+    margin: 0 10px;
+}
+
+.bar {
+    height: 100%;
+    background: #ffc107;
+    border-radius: 5px;
+}
+
+.reviews-section {
+    margin-top: 40px;
+}
+
+.reviews-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.filter-form {
+    display: flex;
+    gap: 10px;
+}
+
+.filter-form select {
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+}
+
+.review-card {
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.review-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.reviewer-info {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.review-date {
+    color: #888;
+    font-size: 0.9rem;
+}
+
+.property-link {
+    color: #666;
+    font-size: 0.9rem;
+    text-decoration: none;
+}
+
+.property-link:hover {
+    text-decoration: underline;
+}
+
+.review-content {
+    margin-bottom: 15px;
+    line-height: 1.6;
+}
+
+.review-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+.helpful-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.helpful-btn {
+    background: none;
+    border: 1px solid #ddd;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.helpful-btn:hover {
+    background: #f5f5f5;
+}
+
+.reply-btn {
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+    padding: 5px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.reply-btn:hover {
+    background: #e9ecef;
+}
+
+.review-reply {
+    margin-top: 15px;
+    padding: 15px;
+    background: #f9f9f9;
+    border-radius: 4px;
+    border-left: 3px solid #007bff;
+}
+
+.reply-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+}
+
+.reply-header strong {
+    color: #007bff;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    margin-top: 30px;
+}
+
+.pagination a {
+    padding: 5px 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    text-decoration: none;
+    color: #007bff;
+}
+
+.pagination a.active {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.pagination a:hover:not(.active) {
+    background: #f5f5f5;
+}
+
+.add-review {
+    margin-top: 40px;
+    padding: 20px;
+    background: #f9f9f9;
+    border-radius: 8px;
+}
+
+.rating-input {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    margin: 10px 0;
+}
+
+.rating-input input {
+    display: none;
+}
+
+.rating-input label {
+    font-size: 1.5rem;
+    color: #ddd;
+    cursor: pointer;
+    padding: 0 2px;
+}
+
+.rating-input input:checked ~ label,
+.rating-input input:hover ~ label {
+    color: #ffc107;
+}
+
+.rating-input label:hover,
+.rating-input label:hover ~ label {
+    color: #ffc107;
+}
+
+#reply-form-container {
+    margin: 20px 0;
+    padding: 20px;
+    background: #f5f5f5;
+    border-radius: 8px;
+}
+
+.checkbox {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 15px 0;
+}
+
+@media (max-width: 768px) {
+    .user-reputation-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .reviews-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .filter-form {
+        width: 100%;
+        flex-direction: column;
+    }
+    /* Badges y estilos especiales */
+.verified-badge {
+    background-color: #e8f5e9;
+    color: #388e3c;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    margin-left: 10px;
+    display: inline-flex;
+    align-items: center;
+}
+
+.verified-badge i {
+    margin-right: 5px;
+}
+
+.verified-review {
+    border-left: 3px solid #388e3c;
+    background-color: #f8f9fa;
+}
+
+.form-note.verified {
+    color: #388e3c;
+    padding: 10px;
+    background-color: #e8f5e9;
+    border-radius: 4px;
+    margin: 10px 0;
+}
+
+.form-note.verified i {
+    margin-right: 5px;
+}
+
+/* Filtros adicionales */
+.review-filters {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.review-filters a {
+    padding: 5px 10px;
+    border-radius: 4px;
+    background: #f0f0f0;
+    text-decoration: none;
+    color: #333;
+}
+
+.review-filters a.active {
+    background: #2196F3;
+    color: white;
+}
+}
+</style>
 {% endblock %}

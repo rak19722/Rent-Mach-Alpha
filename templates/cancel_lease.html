@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2>Cancelar Contrato</h2>
+    <p>Estás a punto de cancelar el contrato para la propiedad: <strong>{{ lease.property.title }}</strong></p>
+    
+    <form method="POST">
+        <div class="form-group">
+            <label for="reason">Razón de cancelación:</label>
+            <textarea class="form-control" id="reason" name="reason" rows="3" required></textarea>
+        </div>
+        
+        <div class="alert alert-warning">
+            <strong>Advertencia:</strong> Esta acción no puede deshacerse.
+        </div>
+        
+        <button type="submit" class="btn btn-danger">Confirmar Cancelación</button>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Cancelar</a>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Crear Perfil Externo</h2>
+    <p>Agrega a alguien que no está en la plataforma para dejarle una review</p>
+    
+    <form method="POST" class="mt-4">
+        <div class="form-group">
+            <label for="name">Nombre completo*</label>
+            <input type="text" class="form-control" id="name" name="name" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="role">Rol*</label>
+            <select class="form-control" id="role" name="role" required>
+                <option value="">Selecciona un rol</option>
+                <option value="landlord">Arrendador</option>
+                <option value="tenant">Arrendatario</option>
+            </select>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Crear Perfil</button>
+    </form>
+</div>
+{% endblock %}
