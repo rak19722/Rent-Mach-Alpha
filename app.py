@@ -9,6 +9,8 @@ import datetime as dt  # Esto importa el módulo completo con un alias
 from sqlalchemy.ext.mutable import MutableDict
 from flask_mail import Mail, Message
 from itsdangerous import URLSafeTimedSerializer
+from itsdangerous import URLSafeTimedSerializer
+from flask_mail import Message
 
 
 
@@ -792,6 +794,53 @@ def login():
     return render_template('login.html')
 
 
+#lo mismo pero por correo
+s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+
+@app.route('/reset-password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    try:
+        email = s.loads(token, salt='password-reset', max_age=3600)  # 1 hora
+    except:
+        flash('El enlace de recuperación expiró o no es válido.', 'danger')
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        password = request.form['password']
+        user = User.query.filter_by(email=email).first()
+        if user:
+            user.password = generate_password_hash(password)
+            db.session.commit()
+            flash('Contraseña actualizada con éxito. Ya puedes iniciar sesión.', 'success')
+            return redirect(url_for('login'))
+
+    return render_template('reset_password.html')
+
+# restablece contraseña perdida
+
+@app.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        email = request.form['email']
+        user = User.query.filter_by(email=email).first()
+
+        if user:
+            token = s.dumps(email, salt='password-reset')
+            reset_url = url_for('reset_password', token=token, _external=True)
+            
+            # Enviar correo
+            msg = Message('Recupera tu contraseña - RentMatch', recipients=[email])
+            msg.body = f'Para cambiar tu contraseña, da clic en este enlace: {reset_url}\n\nEste enlace expirará en 1 hora.'
+            mail.send(msg)
+
+        flash('Si tu correo está registrado, recibirás un enlace para restablecer tu contraseña.', 'info')
+        return redirect(url_for('login'))
+
+    return render_template('forgot_password.html')
+
+
+
+#regitrar nuevo ususario
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -1430,10 +1479,11 @@ def api_properties():
 
 # --------------------- Run ---------------------
 
-app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
+
 
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+    
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True)

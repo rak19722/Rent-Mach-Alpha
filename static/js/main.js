@@ -61,19 +61,19 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Mostrar/ocultar contraseña
-   document.addEventListener("DOMContentLoaded", function () {
-    const togglePassword = document.getElementById("togglePassword");
-    const passwordField = document.getElementById("password");
 
-    togglePassword.addEventListener("click", function () {
-        // Cambiar el tipo de input entre 'password' y 'text'
-        const isPasswordHidden = passwordField.type === "password"; // Verifica si está oculto
-        passwordField.type = isPasswordHidden ? "text" : "password";
 
-        // Alternar la clase 'active' en el ícono para reflejar el estado visual
-        this.classList.toggle("active", isPasswordHidden);
-    });
+const togglePassword = document.getElementById('togglePassword');
+const passwordInput = document.getElementById('password');
+
+togglePassword.addEventListener('click', () => {
+    const isPassword = passwordInput.type === 'password';
+    passwordInput.type = isPassword ? 'text' : 'password';
+
+    togglePassword.classList.toggle('fa-eye-slash', !isPassword); // Mostrar slash si se oculta
+    togglePassword.classList.toggle('fa-eye', isPassword);        // Mostrar ojo si se muestra
 });
+
 
 // Aquí puedes agregar cualquier comportamiento dinámico si es necesario
 // Ejemplo: Cambiar las iniciales con el nombre del usuario al iniciar sesión
